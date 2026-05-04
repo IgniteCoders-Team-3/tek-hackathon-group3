@@ -18,6 +18,25 @@
 //   dotnet user-secrets --project src/AppHost set "Ai:AzureOpenAi:Deployment" "gpt-4o-mini"
 //   dotnet user-secrets --project src/AppHost set "Jwt:Secret"                "<32+char-random>"
 
+// Load root .env so local dev works without user-secrets.
+// Aspire does NOT auto-read .env files — we do it manually here.
+// AppContext.BaseDirectory = src/AppHost/bin/Debug/net9.0/ → 5 levels up = repo root
+var envFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.env"));
+if (!File.Exists(envFile))
+    envFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../.env"));
+if (File.Exists(envFile))
+{
+    foreach (var line in File.ReadAllLines(envFile))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#')) continue;
+        var idx = line.IndexOf('=');
+        if (idx <= 0) continue;
+        var key = line[..idx].Trim();
+        var val = line[(idx + 1)..].Trim();
+        Environment.SetEnvironmentVariable(key, val);
+    }
+}
+
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
 
@@ -56,20 +75,18 @@ IResourceBuilder<ProjectResource> webApi = builder.AddProject<Projects.Web_Api>(
     .WithReference(redis, "Cache")
     .WaitFor(redis)
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-    // Forward user-secrets (Ai, Jwt) to the API process. The values themselves
-    // are pulled from this AppHost's user-secrets store, never from source.
-    .WithEnvironment("Ai__Provider",                          builder.Configuration["Ai:Provider"]                          ?? "Mock")
-    .WithEnvironment("Ai__AzureOpenAi__Endpoint",             builder.Configuration["Ai:AzureOpenAi:Endpoint"]             ?? "")
-    .WithEnvironment("Ai__AzureOpenAi__ApiKey",               builder.Configuration["Ai:AzureOpenAi:ApiKey"]               ?? "")
-    .WithEnvironment("Ai__AzureOpenAi__Deployment",           builder.Configuration["Ai:AzureOpenAi:Deployment"]           ?? "gpt-4o-mini")
-    .WithEnvironment("Ai__AzureOpenAi__EmbeddingDeployment",  builder.Configuration["Ai:AzureOpenAi:EmbeddingDeployment"]  ?? "")
-    .WithEnvironment("Ai__Rag__Enabled",                      builder.Configuration["Ai:Rag:Enabled"]                      ?? "true")
-    .WithEnvironment("Ai__Rag__TopK",                         builder.Configuration["Ai:Rag:TopK"]                         ?? "5")
-    .WithEnvironment("Ai__Rag__EmbeddingDimensions",          builder.Configuration["Ai:Rag:EmbeddingDimensions"]          ?? "1536")
-    // Local document store root — relative to the AppHost working directory by default,
-    // but operators can override via user-secrets (e.g. /var/telcopilot/documents).
-    .WithEnvironment("Ai__Documents__LocalRoot",              builder.Configuration["Ai:Documents:LocalRoot"]              ?? "./.telcopilot/documents")
-    .WithEnvironment("Jwt__Secret",                           builder.Configuration["Jwt:Secret"]                           ?? "dev-secret-replace-in-production-please-32chars-min");
+    // Forward AI + JWT settings. For local dev these come from .env (loaded above into
+    // Environment.SetEnvironmentVariable so Aspire picks them up via builder.Configuration).
+    .WithEnvironment("Ai__Provider",                          Environment.GetEnvironmentVariable("AI_PROVIDER")                          ?? builder.Configuration["Ai:Provider"]                          ?? "Mock")
+    .WithEnvironment("Ai__AzureOpenAi__Endpoint",             Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")             ?? builder.Configuration["Ai:AzureOpenAi:Endpoint"]             ?? "")
+    .WithEnvironment("Ai__AzureOpenAi__ApiKey",               Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")               ?? builder.Configuration["Ai:AzureOpenAi:ApiKey"]               ?? "")
+    .WithEnvironment("Ai__AzureOpenAi__Deployment",           Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT")           ?? builder.Configuration["Ai:AzureOpenAi:Deployment"]           ?? "gpt-4o-mini")
+    .WithEnvironment("Ai__AzureOpenAi__EmbeddingDeployment",  Environment.GetEnvironmentVariable("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")  ?? builder.Configuration["Ai:AzureOpenAi:EmbeddingDeployment"]  ?? "")
+    .WithEnvironment("Ai__Rag__Enabled",                      builder.Configuration["Ai:Rag:Enabled"]                                  ?? "true")
+    .WithEnvironment("Ai__Rag__TopK",                         builder.Configuration["Ai:Rag:TopK"]                                     ?? "5")
+    .WithEnvironment("Ai__Rag__EmbeddingDimensions",          builder.Configuration["Ai:Rag:EmbeddingDimensions"]                      ?? "1536")
+    .WithEnvironment("Ai__Documents__LocalRoot",              builder.Configuration["Ai:Documents:LocalRoot"]                          ?? "./.telcopilot/documents")
+    .WithEnvironment("Jwt__Secret",                           Environment.GetEnvironmentVariable("JWT_SECRET")                          ?? builder.Configuration["Jwt:Secret"]                           ?? "dev-secret-replace-in-production-please-32chars-min");
 
 // Next.js frontend. next.config.mjs reads BACKEND_INTERNAL_URL to rewrite /api/* to the API,
 // so the browser hits a single origin and we don't need nginx in dev.
