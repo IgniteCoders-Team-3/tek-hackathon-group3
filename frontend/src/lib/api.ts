@@ -26,6 +26,7 @@ import type {
   DieselTracePoint,
   OptimizationProjection,
   EnergyRecommendation,
+  WeatherResponse,
 } from "./types";
 
 const API_BASE = "/api";
@@ -331,6 +332,10 @@ export const api = {
       );
     },
   },
+
+  // Weather — Open-Meteo current conditions + 5-day forecast.
+  weather: (city = "Lagos") =>
+    request<WeatherResponse>(`/weather?city=${encodeURIComponent(city)}`),
 };
 
 export type AuthUserMe = {

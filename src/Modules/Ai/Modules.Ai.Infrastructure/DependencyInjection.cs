@@ -117,6 +117,7 @@ public static class DependencyInjection
             services.AddScoped<InternalToolsSkill>();
             services.AddScoped<EnergySkill>();
             services.AddScoped<OsmSkill>();
+            services.AddScoped<WeatherSkill>();
 
             services.AddScoped<Kernel>(sp =>
             {
@@ -134,6 +135,7 @@ public static class DependencyInjection
                 k.Plugins.AddFromObject(sp.GetRequiredService<InternalToolsSkill>(),  nameof(InternalToolsSkill));
                 k.Plugins.AddFromObject(sp.GetRequiredService<EnergySkill>(),         nameof(EnergySkill));
                 k.Plugins.AddFromObject(sp.GetRequiredService<OsmSkill>(),            nameof(OsmSkill));
+                k.Plugins.AddFromObject(sp.GetRequiredService<WeatherSkill>(),        nameof(WeatherSkill));
                 return k;
             });
             services.AddScoped(sp => sp.GetRequiredService<Kernel>().GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>());

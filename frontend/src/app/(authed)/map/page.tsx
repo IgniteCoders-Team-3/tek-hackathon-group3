@@ -7,6 +7,7 @@ import { NetworkMap, type MapMode } from "@/components/NetworkMap";
 import { Bar, Btn, Card, Pill, Section } from "@/components/UI";
 import { api } from "@/lib/api";
 import type { MapResponse, Tower } from "@/lib/types";
+import { WeatherWidget } from "@/components/WeatherWidget";
 
 export default function MapPage() {
   const router = useRouter();
@@ -14,16 +15,27 @@ export default function MapPage() {
   const [sel, setSel] = useState<Tower | null>(null);
   const [dispatched, setDispatched] = useState<string | null>(null);
   const [mode, setMode] = useState<MapMode>("engineer");
+  const [mapLoading, setMapLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    api.map().then((r) => {
-      if (!alive) return;
-      setData(r);
-      setSel(
-        r.towers.find((t) => t.status === "critical") ?? r.towers[0] ?? null,
-      );
-    });
+    setMapLoading(true);
+    setMapError(null);
+    api.map()
+      .then((r) => {
+        if (!alive) return;
+        setData(r);
+        setSel(
+          r.towers.find((t) => t.status === "critical") ?? r.towers[0] ?? null,
+        );
+      })
+      .catch((e) => {
+        if (!alive) return;
+        console.error("[map] api.map() failed:", e);
+        setMapError(String(e?.message ?? "Failed to load map data"));
+      })
+      .finally(() => { if (alive) setMapLoading(false); });
     return () => {
       alive = false;
     };
@@ -68,8 +80,31 @@ export default function MapPage() {
           height: "calc(100vh - 67px)",
         }}
       >
-        <div>
-          {data && (
+        <div style={{ position: "relative", height: "100%", minHeight: 0 }}>
+          {mapLoading && (
+            <div style={{
+              position: "absolute", inset: 0, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              background: "var(--bg-map)", border: "1px solid var(--line)",
+              borderRadius: 10, flexDirection: "column", gap: 10,
+            }}>
+              <div className="pulse" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent)" }} />
+              <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)", letterSpacing: ".14em" }}>LOADING MAP DATA…</span>
+            </div>
+          )}
+          {mapError && !mapLoading && (
+            <div style={{
+              position: "absolute", inset: 0, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              background: "var(--bg-map)", border: "1px solid var(--crit)",
+              borderRadius: 10, flexDirection: "column", gap: 8,
+            }}>
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <span className="mono" style={{ fontSize: 10, color: "var(--crit)", letterSpacing: ".12em" }}>MAP LOAD FAILED</span>
+              <span style={{ fontSize: 11, color: "var(--ink-3)", maxWidth: 260, textAlign: "center" }}>{mapError}</span>
+            </div>
+          )}
+          {!mapLoading && !mapError && data && (
             <NetworkMap
               towers={data.towers}
               onSelect={setSel}
@@ -86,6 +121,8 @@ export default function MapPage() {
             overflowY: "auto",
           }}
         >
+          <WeatherWidget city={sel?.region || "Lagos"} />
+
           {sel && (
             <Card pad={14}>
               <div

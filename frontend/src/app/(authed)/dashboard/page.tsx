@@ -7,6 +7,7 @@ import { Card, KPI, Pill } from "@/components/UI";
 import { Copilot } from "@/components/Copilot";
 import { api } from "@/lib/api";
 import type { Alert, MapResponse, MetricsResponse, Tower } from "@/lib/types";
+import { WeatherWidget } from "@/components/WeatherWidget";
 
 const SPARK_COLORS = ["var(--accent)", "var(--warn)", "var(--crit)", "var(--info)", "var(--crit)", "var(--accent)"];
 
@@ -90,11 +91,13 @@ export default function CommandCenterPage() {
           ))}
         </div>
 
-        {/* Map (left) */}
+        {/* Map (left) + Weather overlay */}
         <div style={{ position: "relative", minHeight: 0, display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
             {map && <NetworkMap towers={map.towers} onSelect={setSel} selectedId={sel?.id} />}
           </div>
+          {/* Weather widget — sits between map and live feed */}
+          <WeatherWidget city="Lagos" />
           <Card pad={0} style={{ overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <div className="mono uppr" style={{

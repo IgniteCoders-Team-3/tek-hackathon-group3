@@ -70,6 +70,12 @@ internal sealed class SemanticKernelOrchestrator(
                                  is X". When the user mentions a specific site by code,
                                  prefer osm_get_site_geocontext (one call, cached) over
                                  invoking the four primitives separately.
+          - WeatherSkill        : Open-Meteo weather data — get_current_weather(city),
+                                 get_weather_forecast(city). Use when the user asks about
+                                 weather conditions, or when correlating weather with
+                                 network issues (storms, rain, heat affecting towers).
+                                 Also useful for planning maintenance windows around
+                                 weather. No API key required.
 
         Tool selection rule:
           • RAG (KnowledgeSkill)  → for explanations, trends, historical 'why/how/what happened'.
@@ -300,6 +306,10 @@ internal static class AttachmentSelector
         if (Regex.IsMatch(q, "ikeja|allen", opts))
         {
             picks.AddRange(["miniMap-ikeja", "ikejaChart"]);
+        }
+        if (Regex.IsMatch(q, "weather|rain|storm|forecast|temperature|humidity|wind|climate", opts))
+        {
+            picks.Add("weatherWidget");
         }
         if (picks.Count == 0)
         {
