@@ -7,7 +7,7 @@ import { NetworkMap, type MapMode } from "@/components/NetworkMap";
 import { Bar, Btn, Card, Pill, Section } from "@/components/UI";
 import { api } from "@/lib/api";
 import type { MapResponse, Tower } from "@/lib/types";
-import { WeatherWidget } from "@/components/WeatherWidget";
+
 
 export default function MapPage() {
   const router = useRouter();
@@ -121,7 +121,7 @@ export default function MapPage() {
             overflowY: "auto",
           }}
         >
-          <WeatherWidget city={sel?.region || "Lagos"} />
+
 
           {sel && (
             <Card pad={14}>
