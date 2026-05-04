@@ -202,6 +202,7 @@ public static class DependencyInjection
         services.AddScoped<IMcpPlugin, AlertsMcpPlugin>();
         services.AddScoped<IMcpPlugin, EnergyMcpPlugin>();
         services.AddScoped<IMcpPlugin, OsmMcpPlugin>();
+        services.AddScoped<IMcpPlugin, WeatherMcpPlugin>();
 
         services.AddScoped<IMcpPluginRegistry, McpPluginRegistry>();
         services.AddScoped<IMcpInvoker, McpInvoker>();
