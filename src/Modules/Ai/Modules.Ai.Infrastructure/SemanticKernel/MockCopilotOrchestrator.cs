@@ -47,6 +47,41 @@ internal sealed class MockCopilotOrchestrator(
         await Task.Delay(60, cancellationToken);
         trace.Add(new SkillTraceEntry("RecommendationSkill", "suggest_actions", (int)(sw.ElapsedMilliseconds - t3), "done"));
 
+        // Weather queries — if the user is asking about weather, return a realistic Lagos weather response.
+        bool isWeatherQuery = IsWeatherQuery(query);
+        if (isWeatherQuery)
+        {
+            long tWeather = sw.ElapsedMilliseconds;
+            await Task.Delay(100, cancellationToken);
+            trace.Add(new SkillTraceEntry("WeatherSkill", "get_current_weather", (int)(sw.ElapsedMilliseconds - tWeather), "done"));
+
+            string weatherRag = BuildRagSection(ragHits);
+            string weatherAnswer = $"""
+            ROOT CAUSE
+            Current weather in Lagos: Partly cloudy, 31°C, humidity 78%, wind 14 km/h from SW. No severe weather alerts. Conditions are within normal operating parameters for all tower sites in the metro area.
+
+            AFFECTED
+            • No weather-related incidents currently active
+            • All 24 towers operating within thermal SLA bounds
+            • Humidity at 78% — within acceptable range for outdoor RF equipment
+
+            RECOMMENDED ACTIONS
+            1. Continue standard monitoring — no weather-driven interventions needed
+            2. Pre-position generator fuel for sites in flood-prone zones (rainy season advisory)
+            3. Review lightning arrestor maintenance schedule for Q2
+
+            {weatherRag}CONFIDENCE
+            88 % — based on current Open-Meteo conditions and fleet telemetry cross-check.
+            """;
+
+            return new CopilotAnswer(
+                Answer: weatherAnswer,
+                Confidence: 0.88,
+                SkillTrace: trace,
+                Attachments: AttachmentSelector.Select(query),
+                Provider: "mock");
+        }
+
         AlertSnapshot? focal = active
             .OrderByDescending(a => SeverityRank(a.Severity))
             .ThenByDescending(a => a.SubscribersAffected)
@@ -136,5 +171,18 @@ internal sealed class MockCopilotOrchestrator(
             var x when x.Contains("predict", ic) || x.Contains("thermal", ic) => "1. Schedule preventive maintenance window in next 2h\n2. Pre-provision spare amplifier for hot-swap\n3. Subscribe NOC to thermal-trend alerts at 80% threshold",
             _ => "1. Open P2 ticket and assign Tier-2 NOC on-call\n2. Capture 5-minute telemetry snapshot for impacted segment\n3. If subscriber impact >5k, notify customer-care and post status page",
         };
+    }
+
+    private static bool IsWeatherQuery(string query)
+    {
+        const StringComparison ic = StringComparison.OrdinalIgnoreCase;
+        return query.Contains("weather", ic)
+            || query.Contains("rain", ic)
+            || query.Contains("storm", ic)
+            || query.Contains("temperature", ic)
+            || query.Contains("forecast", ic)
+            || query.Contains("humidity", ic)
+            || query.Contains("wind", ic)
+            || query.Contains("climate", ic);
     }
 }

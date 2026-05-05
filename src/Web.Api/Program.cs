@@ -113,6 +113,10 @@ builder.Services
 // alert / anomaly response now carries OSM-derived spatial context.
 builder.Services.AddScoped<Web.Api.Endpoints.Geo.GeoEnricher>();
 
+// Weather service — calls Open-Meteo (free, no API key) for current weather + forecast.
+// Used directly by the /api/weather endpoint and by the AI WeatherSkill.
+builder.Services.AddHttpClient<Modules.Ai.Infrastructure.Weather.WeatherService>();
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 

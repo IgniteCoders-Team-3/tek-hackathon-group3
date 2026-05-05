@@ -321,3 +321,30 @@ export type EnergyRecommendation = {
   tone: "accent" | "warn" | "info";
   estimatedDailySavingsNgn: number;
 };
+
+// ── Weather module ─────────────────────────────────────────────────────────────
+// Mirrors the DTOs returned by /api/weather. Used by the WeatherWidget and
+// dashboard integration.
+
+export type CurrentWeather = {
+  city: string;
+  country: string;
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+  condition: string;
+  weatherCode: number;
+};
+
+export type ForecastDay = {
+  date: string;
+  tempMax: number;
+  tempMin: number;
+  condition: string;
+  weatherCode: number;
+};
+
+export type WeatherResponse = {
+  current: CurrentWeather;
+  forecast: ForecastDay[];
+};
